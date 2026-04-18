@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SIKLO — Smart Bike Sharing</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Sora:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --orange: #F28D35;
+      --teal:   #2BB7B3;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      background: #050505;
+      font-family: 'Sora', sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    /* ── PHONE SHELL ── */
+    .phone {
+      width: 375px;
+      height: 100dvh;          /* fill viewport height */
+      background: #fff;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── SCREENS ── */
+    .screen {
+      display: none;
+      flex-direction: column;
+      flex: 1;
+      overflow: hidden;        /* no outer scroll — inner sections scroll */
+    }
+    .screen.active { display: flex; }
+
+    /* scrollable body inside a screen */
+    .s-body {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: 80px;    /* clear fixed bottom nav */
+    }
+    .s-body::-webkit-scrollbar { display: none; }
+
+    /* ── BOTTOM NAV ── */
+    .bottom-nav {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 72px;
+      background: #fff;
+      border-top: 1px solid #f0f0f0;
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      padding: 0 4px 8px;
+      z-index: 50;
+      flex-shrink: 0;
+    }
+    .nav-item {
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+      cursor: pointer; padding: 4px 10px; border-radius: 12px;
+      transition: opacity 0.2s;
+    }
+    .nav-item:hover { opacity: 0.65; }
+    .nav-label { font-size: 9px; font-weight: 600; letter-spacing: 0.06em; color: #bbb; text-transform: uppercase; }
+    .nav-item.active .nav-label { color: var(--teal); }
+    .nav-item.active svg { stroke: var(--teal) !important; }
+    .scan-fab {
+      width: 58px; height: 58px; border-radius: 50%;
+      background: var(--orange);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 0 20px rgba(242,141,53,0.5);
+      margin-top: -20px;
+      border: 3px solid #fff;
+      transition: transform 0.15s;
+      flex-shrink: 0;
+    }
+    .scan-fab:active { transform: scale(0.93); }
+
+    /* ── SHARED ATOMS ── */
+    .btn-orange {
+      background: var(--orange); color: white;
+      font-family: 'Sora', sans-serif; font-weight: 700;
+      font-size: 14px; letter-spacing: 0.04em;
+      border: none; border-radius: 16px; padding: 15px;
+      width: 100%; cursor: pointer; transition: transform 0.1s;
+    }
+    .btn-orange:active { transform: scale(0.98); }
+    .btn-orange:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    .btn-teal {
+      background: var(--teal); color: white;
+      font-family: 'Sora', sans-serif; font-weight: 700;
+      font-size: 14px; letter-spacing: 0.04em;
+      border: none; border-radius: 16px; padding: 15px;
+      width: 100%; cursor: pointer; transition: transform 0.1s;
+    }
+    .btn-teal:active { transform: scale(0.98); }
+
+    .section-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.14em;
+      color: #888; text-transform: uppercase;
+    }
+    .pulse-dot {
+      width: 7px; height: 7px; border-radius: 50%; background: var(--teal);
+      display: inline-block;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.35;transform:scale(.65)} }
+
+    .divider { height: 1px; background: #f0f0f0; }
+
+    /* ── LOGIN ── */
+    #state-login {
+      justify-content: center; align-items: center;
+      padding: 0 32px; gap: 0; position: relative; overflow: hidden;
+    }
+    #state-login::before {
+      content:''; position:absolute; top:-80px; left:-60px;
+      width:260px; height:260px;
+      background:radial-gradient(circle,rgba(43,183,179,0.08) 0%,transparent 70%);
+      pointer-events:none;
+    }
+    #state-login::after {
+      content:''; position:absolute; bottom:-60px; right:-50px;
+      width:240px; height:240px;
+      background:radial-gradient(circle,rgba(242,141,53,0.07) 0%,transparent 70%);
+      pointer-events:none;
+    }
+    .input-field {
+      background: #f8f8f8; border: 1px solid #e8e8e8; border-radius: 14px;
+      padding: 13px 16px; color: #111; font-family:'Sora',sans-serif;
+      font-size: 15px; width: 100%; outline: none; transition: border-color 0.2s;
+    }
+    .input-field:focus { border-color: var(--teal); }
+    .input-field::placeholder { color: #bbb; }
+    .custom-checkbox {
+      appearance: none; width: 18px; height: 18px;
+      border: 2px solid #ddd; border-radius: 5px; background: #f8f8f8;
+      cursor: pointer; flex-shrink: 0; transition: all 0.2s; position: relative;
+    }
+    .custom-checkbox:checked { background: var(--teal); border-color: var(--teal); }
+    .custom-checkbox:checked::after {
+      content:''; position:absolute; left:4px; top:1px;
+      width:6px; height:10px;
+      border:2px solid white; border-top:none; border-left:none;
+      transform:rotate(45deg);
+    }
+
+    /* ── DASHBOARD ── */
+    .beat-card {
+      margin: 10px 16px;
+      background: linear-gradient(135deg,#1D4E4E 0%,#1A3A3A 50%,#0F2828 100%);
+      border: 1px solid rgba(43,183,179,0.2);
+      border-radius: 22px; padding: 18px 20px;
+      position: relative; overflow: hidden;
+    }
+    .beat-card::before {
+      content:''; position:absolute; top:-30px; right:-30px;
+      width:100px; height:100px;
+      background:radial-gradient(circle,rgba(43,183,179,0.18) 0%,transparent 70%);
+    }
+    .beat-val {
+      font-family:'Space Mono',monospace; font-size:34px; font-weight:700;
+      color:white; line-height:1.1;
+    }
+
+    .map-box {
+      margin: 8px 16px; border-radius: 20px; overflow:hidden;
+      border:1px solid #eee; position:relative;
+    }
+    .map-box img { width:100%; display:block; }
+    .map-overlay {
+      position:absolute; inset:0;
+      background:linear-gradient(to bottom,transparent 55%,rgba(0,0,0,0.65) 100%);
+    }
+    .map-label { position:absolute; bottom:10px; left:12px; }
+    .corridor-tag {
+      display:inline-block; background:rgba(242,141,53,0.2);
+      border:1px solid rgba(242,141,53,0.4); color:var(--orange);
+      font-size:9px; font-weight:700; letter-spacing:0.08em;
+      padding:2px 7px; border-radius:5px; text-transform:uppercase;
+    }
+
+    .station-row {
+      display:flex; align-items:center; gap:11px;
+      padding:11px 14px; background:#fafafa;
+      border-radius:14px; margin-bottom:7px;
+      border:1px solid #f0f0f0; cursor:pointer;
+      transition:border-color 0.2s, background 0.2s;
+    }
+    .station-row:hover { border-color:var(--teal); background:#f0fafa; }
+    .s-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+
+    /* ── SCANNER ── */
+    #state-scanner { background:#000; position:relative; }
+    #cam-feed { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+    .scan-ui {
+      position:relative; z-index:2;
+      display:flex; flex-direction:column;
+      align-items:center; justify-content:center;
+      flex:1; gap:18px;
+    }
+    .scan-frame { width:220px; height:220px; position:relative; }
+    .sc { position:absolute; width:30px; height:30px; border-color:var(--orange); border-style:solid; }
+    .sc.tl{top:0;left:0;border-width:3px 0 0 3px;border-radius:7px 0 0 0}
+    .sc.tr{top:0;right:0;border-width:3px 3px 0 0;border-radius:0 7px 0 0}
+    .sc.bl{bottom:0;left:0;border-width:0 0 3px 3px;border-radius:0 0 0 7px}
+    .sc.br{bottom:0;right:0;border-width:0 3px 3px 0;border-radius:0 0 7px 0}
+    .scan-beam {
+      position:absolute; left:8px; right:8px; height:2px;
+      background:linear-gradient(90deg,transparent,var(--orange),transparent);
+      box-shadow:0 0 8px var(--orange);
+      animation:beam 2s ease-in-out infinite;
+    }
+    @keyframes beam{0%{top:14px;opacity:0}10%{opacity:1}90%{opacity:1}100%{top:198px;opacity:0}}
+    .scan-hdr {
+      position:absolute; top:0; left:0; right:0; padding:16px;
+      display:flex; align-items:center; gap:10px; z-index:10;
+      background:linear-gradient(to bottom,rgba(0,0,0,0.75),transparent);
+    }
+    .icon-circle {
+      width:36px; height:36px; border-radius:50%;
+      background:rgba(255,255,255,0.1); backdrop-filter:blur(8px);
+      border:1px solid rgba(255,255,255,0.12);
+      display:flex; align-items:center; justify-content:center;
+      cursor:pointer; flex-shrink:0;
+    }
+
+    /* ── MODALS ── */
+    .modal-back {
+      position:absolute; inset:0; background:rgba(0,0,0,0.45);
+      z-index:200; display:flex; align-items:flex-end; justify-content:center;
+    }
+    .modal-sheet {
+      width:375px; background:#fff;
+      border-radius:26px 26px 0 0;
+      padding:22px 20px 32px;
+      animation:slideUp 0.28s cubic-bezier(0.32,0.72,0,1);
+    }
+    @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+    .sheet-pip { width:36px; height:4px; background:#e0e0e0; border-radius:2px; margin:0 auto 18px; }
+
+    /* step dots */
+    .step-dots { display:flex; gap:5px; justify-content:center; margin-bottom:16px; }
+    .sdot { width:7px; height:7px; border-radius:50%; background:#e8e8e8; }
+    .sdot.on { background:var(--teal); width:20px; border-radius:4px; }
+    .sdot.done { background:var(--orange); }
+
+    /* station pick rows */
+    .spi {
+      display:flex; align-items:center; gap:12px;
+      padding:12px 8px; border-bottom:1px solid #f5f5f5;
+      cursor:pointer; border-radius:8px; transition:background 0.15s;
+    }
+    .spi:last-child { border-bottom:none; }
+    .spi:hover { background:#f9f9f9; }
+    .spi.chosen { background:#f0fafa; border-radius:12px; padding-left:10px; padding-right:10px; }
+    .spi.chosen .spi-name { color:var(--teal); }
+    .spi-icon { width:38px; height:38px; border-radius:11px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .avail {
+      font-size:10px; font-weight:700; padding:2px 7px; border-radius:5px;
+      text-transform:uppercase; letter-spacing:0.05em; white-space:nowrap;
+    }
+    .av-g { background:rgba(43,183,179,0.1); color:var(--teal); }
+    .av-o { background:rgba(242,141,53,0.1); color:var(--orange); }
+
+    /* vehicle cards */
+    .v-card {
+      background:#fafafa; border:2px solid #eee;
+      border-radius:18px; padding:14px;
+      display:flex; align-items:center; gap:14px;
+      margin-bottom:10px; cursor:pointer;
+      transition:border-color 0.2s, background 0.2s;
+    }
+    .v-card:hover { border-color:#ddd; }
+    .v-card.picked { border-color:var(--orange); background:rgba(242,141,53,0.04); }
+    .v-icon { width:48px; height:48px; background:#f0f0f0; border-radius:12px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+
+    /* station chip */
+    .station-chip {
+      display:flex; align-items:center; gap:8px;
+      padding:10px 12px; background:#f0fafa;
+      border:1.5px solid rgba(43,183,179,0.2); border-radius:14px;
+      margin-bottom:12px;
+    }
+
+    /* ── RIDE SCREEN ── */
+    #state-ride { justify-content:center; align-items:center; gap:16px; padding:32px 20px 100px; }
+    .timer-big { font-family:'Space Mono',monospace; font-size:68px; font-weight:700; color:var(--teal); line-height:1; text-align:center; }
+    .beat-live {
+      background:linear-gradient(135deg,#1D4E4E,#0F2828);
+      border:1px solid rgba(43,183,179,0.3);
+      border-radius:18px; padding:14px 20px; width:100%; text-align:center;
+    }
+    .ride-row {
+      display:flex; align-items:center; justify-content:space-between;
+      background:#fafafa; border:1px solid #f0f0f0;
+      border-radius:14px; padding:12px 16px; width:100%;
+    }
+
+    /* ── SUMMARY ── */
+    #state-summary .s-body { padding:24px 20px 100px; }
+    .sum-hero {
+      background:linear-gradient(135deg,#fff8f2,#fff4ea);
+      border:1px solid rgba(242,141,53,0.15);
+      border-radius:22px; padding:24px; text-align:center; margin-bottom:14px;
+    }
+    .stat-grid { display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-bottom:14px; }
+    .stat-box { background:#fafafa; border:1px solid #f0f0f0; border-radius:16px; padding:14px; }
+    .beat-sum {
+      background:linear-gradient(135deg,#1D4E4E,#0F2828);
+      border:1px solid rgba(43,183,179,0.25);
+      border-radius:18px; padding:16px 20px; margin-bottom:14px;
+      display:flex; justify-content:space-between; align-items:center;
+    }
+    .detail-box { background:#fafafa; border:1px solid #f0f0f0; border-radius:16px; padding:14px; margin-bottom:14px; }
+    .detail-row { display:flex; justify-content:space-between; align-items:center; padding:9px 0; }
+    .detail-row + .detail-row { border-top:1px solid #f0f0f0; }
+
+    /* ── WALLET ── */
+    #state-wallet .s-body { padding:0 0 80px; }
+    .w-hero {
+      margin:12px 16px;
+      background:linear-gradient(135deg,#1D4E4E,#1A3A3A,#0F2828);
+      border-radius:24px; padding:22px 20px; position:relative; overflow:hidden;
+    }
+    .w-hero::after { content:''; position:absolute; top:-50px; right:-50px; width:180px; height:180px; background:radial-gradient(circle,rgba(43,183,179,0.2) 0%,transparent 70%); }
+    .w-hero::before { content:''; position:absolute; bottom:-35px; left:-35px; width:140px; height:140px; background:radial-gradient(circle,rgba(242,141,53,0.1) 0%,transparent 70%); }
+    .w-bal { font-family:'Space Mono',monospace; font-size:42px; font-weight:700; color:white; line-height:1; position:relative; z-index:1; }
+    .w-actions { display:grid; grid-template-columns:1fr 1fr; gap:9px; margin:10px 16px 0; }
+    .w-btn { display:flex; flex-direction:column; align-items:center; gap:6px; background:#fafafa; border:1px solid #f0f0f0; border-radius:16px; padding:14px 10px; cursor:pointer; }
+    .w-ico { width:40px; height:40px; border-radius:11px; display:flex; align-items:center; justify-content:center; }
+    .redeem-banner {
+      margin:10px 16px;
+      background:linear-gradient(135deg,#fff8f2,#fff4ea);
+      border:1.5px solid rgba(242,141,53,0.18);
+      border-radius:18px; padding:14px 16px;
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    .tx { display:flex; align-items:center; gap:11px; padding:11px 16px; border-bottom:1px solid #f7f7f7; }
+    .tx:last-child { border-bottom:none; }
+    .tx-ico { width:38px; height:38px; border-radius:11px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .tx-cr { color:var(--teal); font-family:'Space Mono',monospace; font-size:12px; font-weight:700; }
+    .tx-db { color:var(--orange); font-family:'Space Mono',monospace; font-size:12px; font-weight:700; }
+
+    /* ── ACTIVITY ── */
+    #state-activity .s-body { padding:0 0 80px; }
+    .stat3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin:10px 16px; }
+    .mini-stat { background:#fafafa; border:1px solid #f0f0f0; border-radius:14px; padding:12px 8px; text-align:center; }
+    .chart-box { margin:0 16px 10px; background:#fafafa; border:1px solid #f0f0f0; border-radius:18px; padding:14px; }
+    .bars { display:flex; align-items:flex-end; gap:5px; height:56px; }
+    .bar-c { display:flex; flex-direction:column; align-items:center; gap:3px; flex:1; }
+    .bar { width:100%; border-radius:5px 5px 0 0; background:var(--teal); opacity:0.22; }
+    .bar.hi { opacity:1; }
+    .bar-d { font-size:8px; font-weight:600; color:#bbb; text-transform:uppercase; }
+    .rh { display:flex; align-items:center; gap:11px; padding:12px 16px; border-bottom:1px solid #f7f7f7; cursor:pointer; }
+    .rh:hover { background:#fafafa; }
+    .rh-thumb { width:42px; height:42px; border-radius:13px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+
+    /* ── PROFILE ── */
+    #state-profile .s-body { padding:0 0 80px; }
+    .prof-hero { background:linear-gradient(160deg,#f0fafa 0%,#fff 60%); padding:24px 16px 18px; border-bottom:1px solid #f0f0f0; }
+    .avatar {
+      width:64px; height:64px; border-radius:50%;
+      background:linear-gradient(135deg,var(--orange),var(--teal));
+      display:flex; align-items:center; justify-content:center;
+      font-family:'Space Mono',monospace; font-size:20px; font-weight:700; color:white;
+      border:3px solid white; box-shadow:0 4px 14px rgba(43,183,179,0.2);
+    }
+    .prof-stat { text-align:center; flex:1; }
+    .psv { font-family:'Space Mono',monospace; font-size:18px; font-weight:700; color:#111; }
+    .badge-strip { display:flex; gap:9px; overflow-x:auto; padding:0 16px 2px; }
+    .badge-strip::-webkit-scrollbar { display:none; }
+    .badge-item { display:flex; flex-direction:column; align-items:center; gap:5px; min-width:60px; }
+    .bc { width:48px; height:48px; border-radius:50%; display:flex; align-items:center; justify-content:center; border:2px solid #f0f0f0; }
+    .bc.earned { border-color:var(--teal); background:rgba(43,183,179,0.08); }
+    .bc.locked { background:#f8f8f8; opacity:0.38; }
+    .menu-row {
+      display:flex; align-items:center; gap:12px;
+      padding:13px 16px; border-bottom:1px solid #f7f7f7;
+      cursor:pointer; transition:opacity 0.15s;
+    }
+    .menu-row:hover { opacity:0.65; }
+    .menu-row:last-child { border-bottom:none; }
+    .m-ico { width:38px; height:38px; border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  </style>
+</head>
+<body>
+<div class="phone" id="app">
+
+  <!-- ══ LOGIN ══ -->
+  <div id="state-login" class="screen active">
+    <div class="flex flex-col items-center w-full gap-1" style="margin-bottom:32px;">
+      <img src="logo.png" alt="SIKLO" style="width:110px;height:110px;object-fit:contain;" />
+      <p style="text-align: center; font-size:10px;font-weight:700;letter-spacing:0.18em;color:var(--orange);text-transform:uppercase;">Move With The Beat</p>
+    </div>
+
+    <div style="width:100%;margin-bottom:8px;">
+      <p class="section-label" style="margin-bottom:8px;">Mobile Number</p>
+      <input type="tel" id="phone-input" class="input-field" placeholder="+63 9XX XXX XXXX" />
+    </div>
+
+    <div style="display:flex;align-items:flex-start;gap:10px;margin:14px 0 20px;">
+      <input type="checkbox" id="tnc-check" class="custom-checkbox" style="margin-top:2px;" onchange="toggleLogin()" />
+      <label for="tnc-check" style="font-size:12px;color:#888;line-height:1.5;">
+        I agree to the <span style="color:var(--teal);text-decoration:underline;">Terms & Conditions</span> and <span style="color:var(--teal);text-decoration:underline;">Privacy Policy</span> of SIKLO Iligan
+      </label>
+    </div>
+
+    <button id="enter-btn" class="btn-orange" disabled onclick="navigate('dashboard')">ENTER</button>
+
+    <p style="font-size:11px;color:#bbb;text-align:center;margin-top:20px;">Tibanga · MSU-IIT · Palao · Tambo Corridor</p>
+  </div>
+
+  <!-- ══ DASHBOARD ══ -->
+  <div id="state-dashboard" class="screen">
+    <div class="s-body">
+      <!-- header -->
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 16px 8px;">
+        <img src="logo.png" alt="SIKLO" style="height:28px;object-fit:contain;" />
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="display:inline-flex;align-items:center;gap:5px;background:rgba(43,183,179,0.1);border:1px solid rgba(43,183,179,0.2);color:var(--teal);font-size:9px;font-weight:700;letter-spacing:0.08em;padding:3px 9px;border-radius:7px;text-transform:uppercase;">
+            <span class="pulse-dot" style="width:5px;height:5px;"></span>ACTIVE
+          </div>
+          <div style="width:32px;height:32px;background:#f5f5f5;border-radius:50%;border:1px solid #eee;display:flex;align-items:center;justify-content:center;">
+            <i data-lucide="bell" style="width:14px;height:14px;stroke:#888;"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- BEAT card -->
+      <div class="beat-card">
+        <div style="font-size:9px;font-weight:700;letter-spacing:0.12em;color:var(--teal);text-transform:uppercase;position:relative;z-index:1;">BEAT Wallet</div>
+        <div class="beat-val" id="dash-beat" style="position:relative;z-index:1;">150.00</div>
+        <div style="font-size:11px;color:rgba(255,255,255,0.4);position:relative;z-index:1;margin-bottom:10px;">Incentive Credits · Earned every ride</div>
+        <div style="height:1px;background:rgba(43,183,179,0.18);margin-bottom:10px;position:relative;z-index:1;"></div>
+        <div style="font-size:10px;color:rgba(43,183,179,0.6);text-align:center;position:relative;z-index:1;">0.1 Credit per ₱10 spent</div>
+      </div>
+
+      <!-- map -->
+      <div class="map-box">
+        <img src="app_map.png" alt="Corridor Map" />
+        <div class="map-overlay"></div>
+        <div class="map-label">
+          <span class="corridor-tag">Active Route</span>
+          <div style="color:white;font-size:11px;font-weight:600;margin-top:3px;">Tibanga · Palao · Tambo</div>
+        </div>
+      </div>
+
+      <!-- stations -->
+      <div style="padding:10px 16px 4px;display:flex;justify-content:space-between;align-items:baseline;">
+        <span class="section-label">Nearby Stations</span>
+        <span style="font-size:10px;color:#bbb;">Tap to ride</span>
+      </div>
+      <div style="padding:0 16px;">
+        <div class="station-row" onclick="quickStart('MSU-IIT','Tibanga',3,'#F28D35')">
+          <div class="s-dot" style="background:#F28D35;box-shadow:0 0 5px #F28D35;"></div>
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:600;color:#111;">MSU-IIT</div>
+            <div style="font-size:11px;color:#999;">Tibanga · 3 bikes</div>
+          </div>
+          <span style="font-size:11px;font-weight:700;color:var(--teal);">120m</span>
+          <i data-lucide="chevron-right" style="width:13px;height:13px;stroke:#ddd;"></i>
+        </div>
+        <div class="station-row" onclick="quickStart('Tambo Terminal','Tambo',7,'#2BB7B3')">
+          <div class="s-dot" style="background:#2BB7B3;box-shadow:0 0 5px #2BB7B3;"></div>
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:600;color:#111;">Tambo Terminal</div>
+            <div style="font-size:11px;color:#999;">Tambo · 7 bikes</div>
+          </div>
+          <span style="font-size:11px;font-weight:700;color:var(--teal);">1.2km</span>
+          <i data-lucide="chevron-right" style="width:13px;height:13px;stroke:#ddd;"></i>
+        </div>
+        <div class="station-row" onclick="quickStart('City Hall','Palao',2,'#888')">
+          <div class="s-dot" style="background:#bbb;"></div>
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:600;color:#111;">City Hall</div>
+            <div style="font-size:11px;color:#999;">Palao · 2 bikes</div>
+          </div>
+          <span style="font-size:11px;font-weight:700;color:var(--teal);">2.4km</span>
+          <i data-lucide="chevron-right" style="width:13px;height:13px;stroke:#ddd;"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- bottom nav -->
+    <nav class="bottom-nav" id="bnav-dash">
+      <div class="nav-item active" id="ni-home" onclick="navigate('dashboard')">
+        <i data-lucide="home" style="width:19px;height:19px;stroke:#bbb;"></i>
+        <span class="nav-label">Home</span>
+      </div>
+      <div class="nav-item" id="ni-wallet" onclick="navigate('wallet')">
+        <i data-lucide="wallet" style="width:19px;height:19px;stroke:#bbb;"></i>
+        <span class="nav-label">Wallet</span>
+      </div>
+      <div class="scan-fab" onclick="openScanner()">
+        <i data-lucide="scan-line" style="width:24px;height:24px;stroke:white;stroke-width:2;"></i>
+      </div>
+      <div class="nav-item" id="ni-activity" onclick="navigate('activity')">
+        <i data-lucide="activity" style="width:19px;height:19px;stroke:#bbb;"></i>
+        <span class="nav-label">Activity</span>
+      </div>
+      <div class="nav-item" id="ni-profile" onclick="navigate('profile')">
+        <i data-lucide="user" style="width:19px;height:19px;stroke:#bbb;"></i>
+        <span class="nav-label">Profile</span>
+      </div>
+    </nav>
+  </div>
+
+  <!-- ══ SCANNER ══ -->
+  <div id="state-scanner" class="screen" style="background:#000;">
+    <video id="cam-feed" autoplay playsinline muted></video>
+    <div class="scan-hdr">
+      <div class="icon-circle" onclick="stopCamera();navigate('dashboard');">
+        <i data-lucide="arrow-left" style="width:16px;height:16px;stroke:white;"></i>
+      </div>
+      <div>
+        <div style="color:white;font-weight:700;font-size:15px;">Scan QR Code</div>
+        <div style="color:rgba(255,255,255,0.45);font-size:11px;">Point at the bike's QR label</div>
+      </div>
+    </div>
+    <div class="scan-ui">
+      <div class="scan-frame">
+        <div class="sc tl"></div><div class="sc tr"></div>
+        <div class="sc bl"></div><div class="sc br"></div>
+        <div class="scan-beam"></div>
+      </div>
+      <p style="color:rgba(255,255,255,0.4);font-size:10px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;">Align QR within frame</p>
+      <button class="btn-orange" style="max-width:200px;border-radius:50px;background:rgba(242,141,53,0.88);backdrop-filter:blur(8px);" onclick="afterScan()">Simulate Scan</button>
+    </div>
+  </div>
+
+  <!-- ══ MODAL: STEP 1 — STATION ══ -->
+  <div id="modal-station" class="modal-back" style="display:none;">
+    <div class="modal-sheet">
+      <div class="sheet-pip"></div>
+      <div class="step-dots"><div class="sdot on"></div><div class="sdot"></div></div>
+
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">
+        <div>
+          <div style="font-size:19px;font-weight:700;color:#111;">Pick Your Station</div>
+          <div style="font-size:11px;color:#aaa;margin-top:2px;">Where are you riding from?</div>
+        </div>
+        <div class="icon-circle" style="background:#f5f5f5;border:1px solid #eee;" onclick="closeStationModal()">
+          <i data-lucide="x" style="width:14px;height:14px;stroke:#999;"></i>
+        </div>
+      </div>
+
+      <!-- 3 stations only -->
+      <div id="spi-list">
+        <div class="spi" id="spi-msu" onclick="pickStation('MSU-IIT','Tibanga',3,'#F28D35','spi-msu')">
+          <div class="spi-icon" style="background:rgba(242,141,53,0.1);">
+            <div style="width:10px;height:10px;border-radius:50%;background:#F28D35;box-shadow:0 0 6px #F28D35;"></div>
+          </div>
+          <div style="flex:1;">
+            <div class="spi-name" style="font-size:13px;font-weight:600;color:#111;">MSU-IIT</div>
+            <div style="font-size:11px;color:#aaa;">Tibanga · 120m away</div>
+          </div>
+          <div style="text-align:right;">
+            <span class="avail av-g">3 bikes</span>
+            <div style="font-size:10px;color:#bbb;margin-top:2px;">Conv + E-Bike</div>
+          </div>
+        </div>
+
+        <div class="spi" id="spi-tambo" onclick="pickStation('Tambo Terminal','Tambo',7,'#2BB7B3','spi-tambo')">
+          <div class="spi-icon" style="background:rgba(43,183,179,0.1);">
+            <div style="width:10px;height:10px;border-radius:50%;background:#2BB7B3;box-shadow:0 0 6px #2BB7B3;"></div>
+          </div>
+          <div style="flex:1;">
+            <div class="spi-name" style="font-size:13px;font-weight:600;color:#111;">Tambo Terminal</div>
+            <div style="font-size:11px;color:#aaa;">Tambo · 1.2km away</div>
+          </div>
+          <div style="text-align:right;">
+            <span class="avail av-g">7 bikes</span>
+            <div style="font-size:10px;color:#bbb;margin-top:2px;">Conv + E-Bike</div>
+          </div>
+        </div>
+
+        <div class="spi" id="spi-cityhall" onclick="pickStation('City Hall','Palao',2,'#888','spi-cityhall')">
+          <div class="spi-icon" style="background:#f5f5f5;">
+            <div style="width:10px;height:10px;border-radius:50%;background:#bbb;"></div>
+          </div>
+          <div style="flex:1;">
+            <div class="spi-name" style="font-size:13px;font-weight:600;color:#111;">City Hall</div>
+            <div style="font-size:11px;color:#aaa;">Palao · 2.4km away</div>
+          </div>
+          <div style="text-align:right;">
+            <span class="avail av-o">2 bikes</span>
+            <div style="font-size:10px;color:#bbb;margin-top:2px;">Conv only</div>
+          </div>
+        </div>
+      </div>
+
+      <button id="btn-station-next" class="btn-teal" style="margin-top:18px;" disabled onclick="openVehicleModal()">
+        Next — Choose Vehicle
+      </button>
+    </div>
+  </div>
+
+  <!-- ══ MODAL: STEP 2 — VEHICLE ══ -->
+  <div id="modal-vehicle" class="modal-back" style="display:none;">
+    <div class="modal-sheet">
+      <div class="sheet-pip"></div>
+      <div class="step-dots"><div class="sdot done"></div><div class="sdot on"></div></div>
+
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+        <div>
+          <div style="font-size:19px;font-weight:700;color:#111;">Choose Vehicle</div>
+          <div style="font-size:11px;color:#aaa;margin-top:2px;" id="v-modal-sub">Station · Area</div>
+        </div>
+        <div class="icon-circle" style="background:#f5f5f5;border:1px solid #eee;" onclick="backToStation()">
+          <i data-lucide="arrow-left" style="width:14px;height:14px;stroke:#999;"></i>
+        </div>
+      </div>
+
+      <!-- selected station chip -->
+      <div class="station-chip">
+        <i data-lucide="map-pin" style="width:14px;height:14px;stroke:var(--teal);flex-shrink:0;"></i>
+        <span style="font-size:12px;font-weight:700;color:#333;" id="chip-name">MSU-IIT</span>
+        <span style="font-size:11px;color:#aaa;">·</span>
+        <span style="font-size:11px;color:#aaa;" id="chip-area">Tibanga</span>
+        <button style="margin-left:auto;font-size:11px;font-weight:700;color:var(--teal);background:none;border:none;cursor:pointer;" onclick="backToStation()">Change</button>
+      </div>
+
+      <div id="vc-conv" class="v-card" onclick="pickVehicle('conventional')">
+        <div class="v-icon"><i data-lucide="bike" style="width:24px;height:24px;stroke:#F28D35;"></i></div>
+        <div style="flex:1;">
+          <div style="font-weight:700;font-size:14px;color:#F28D35;">Conventional Bike</div>
+          <div style="font-size:11px;color:#aaa;margin-top:2px;">Manual pedal · Eco-friendly</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-weight:700;font-size:16px;color:#F28D35;">₱15</div>
+          <div style="font-size:10px;color:#bbb;">/ 15 mins</div>
+        </div>
+      </div>
+
+      <div id="vc-ebike" class="v-card" onclick="pickVehicle('ebike')">
+        <div class="v-icon"><i data-lucide="zap" style="width:24px;height:24px;stroke:#2BB7B3;"></i></div>
+        <div style="flex:1;">
+          <div style="font-weight:700;font-size:14px;color:#2BB7B3;">E-Bike</div>
+          <div style="font-size:11px;color:#aaa;margin-top:2px;">Electric assist · Faster</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-weight:700;font-size:16px;color:#2BB7B3;">₱30</div>
+          <div style="font-size:10px;color:#bbb;">/ 15 mins</div>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:7px;margin:4px 0 14px;padding:0 2px;">
+        <i data-lucide="info" style="width:13px;height:13px;stroke:#ccc;flex-shrink:0;"></i>
+        <span style="font-size:11px;color:#bbb;">Earn 0.1 BEAT credit per ₱10 spent</span>
+      </div>
+
+      <button id="btn-start-ride" class="btn-orange" disabled onclick="startRide()">START RIDE</button>
+    </div>
+  </div>
+
+  <!-- ══ RIDE ══ -->
+  <div id="state-ride" class="screen">
+    <span id="ride-badge" style="align-self:flex-start;font-size:10px;font-weight:700;padding:3px 12px;border-radius:99px;letter-spacing:0.08em;text-transform:uppercase;border:1px solid rgba(242,141,53,0.25);background:rgba(242,141,53,0.1);color:#F28D35;">Conventional</span>
+
+    <div style="text-align:center;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:0.14em;color:#aaa;text-transform:uppercase;margin-bottom:6px;">Elapsed Time</div>
+      <div class="timer-big" id="ride-timer">00:00</div>
+    </div>
+
+    <!-- route chip -->
+    <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:#f0fafa;border:1.5px solid rgba(43,183,179,0.18);border-radius:14px;width:100%;">
+      <i data-lucide="map-pin" style="width:14px;height:14px;stroke:var(--teal);flex-shrink:0;"></i>
+      <div>
+        <div style="font-size:9px;font-weight:700;letter-spacing:0.1em;color:var(--teal);text-transform:uppercase;">Departing From</div>
+        <div style="font-size:13px;font-weight:600;color:#111;" id="ride-from">MSU-IIT · Tibanga</div>
+      </div>
+    </div>
+
+    <div class="beat-live">
+      <div style="font-size:9px;font-weight:700;letter-spacing:0.12em;color:var(--teal);text-transform:uppercase;margin-bottom:4px;">BEAT Accumulating</div>
+      <div><span class="pulse-dot"></span><span id="beat-val" style="font-family:'Space Mono',monospace;font-size:26px;font-weight:700;color:var(--teal);">+0.00</span></div>
+    </div>
+
+    <div class="ride-row">
+      <div><div style="font-size:11px;color:#aaa;">Est. Cost</div><div style="font-size:17px;font-weight:700;color:#111;" id="ride-cost">₱0.00</div></div>
+      <div style="width:1px;height:34px;background:#eee;"></div>
+      <div><div style="font-size:11px;color:#aaa;">Vehicle</div><div style="font-size:13px;font-weight:600;color:#444;" id="ride-vtype">Conventional</div></div>
+    </div>
+
+    <button style="background:#f5f5f5;color:#999;font-family:'Sora',sans-serif;font-weight:700;font-size:13px;border:1px solid #eee;border-radius:14px;padding:14px;width:100%;cursor:pointer;" onclick="endRide()">END RIDE</button>
+  </div>
+
+  <!-- ══ SUMMARY ══ -->
+  <div id="state-summary" class="screen">
+    <div class="s-body">
+      <div style="display:flex;align-items:center;gap:10px;padding:20px 20px 14px;">
+        <div class="icon-circle" style="background:#f5f5f5;border:1px solid #eee;" onclick="navigate('dashboard')">
+          <i data-lucide="arrow-left" style="width:15px;height:15px;stroke:#888;"></i>
+        </div>
+        <div>
+          <div style="font-size:17px;font-weight:700;color:#111;">Ride Summary</div>
+          <div style="font-size:11px;color:#aaa;">Session completed</div>
+        </div>
+      </div>
+
+      <div style="padding:0 16px;">
+        <div class="sum-hero">
+          <div style="font-size:10px;font-weight:700;letter-spacing:0.12em;color:#aaa;text-transform:uppercase;margin-bottom:6px;">Total Cost</div>
+          <div style="font-family:'Space Mono',monospace;font-size:48px;font-weight:700;color:#111;" id="sum-cost">₱15.00</div>
+          <div style="font-size:11px;color:#aaa;margin-top:4px;" id="sum-desc">15 mins · Conventional Bike</div>
+        </div>
+
+        <div class="stat-grid">
+          <div class="stat-box">
+            <div style="font-size:10px;color:#aaa;margin-bottom:4px;">Duration</div>
+            <div style="font-family:'Space Mono',monospace;font-size:20px;font-weight:700;color:var(--teal);" id="sum-time">30:00</div>
+            <div style="font-size:10px;color:#bbb;">minutes</div>
+          </div>
+          <div class="stat-box">
+            <div style="font-size:10px;color:#aaa;margin-bottom:4px;">Rate</div>
+            <div style="font-family:'Space Mono',monospace;font-size:20px;font-weight:700;color:var(--orange);" id="sum-rate">₱15</div>
+            <div style="font-size:10px;color:#bbb;">per 15 mins</div>
+          </div>
+        </div>
+
+        <div class="beat-sum">
+          <div>
+            <div style="font-size:9px;font-weight:700;letter-spacing:0.12em;color:var(--teal);text-transform:uppercase;">BEAT Credits Earned</div>
+            <div style="font-family:'Space Mono',monospace;font-size:24px;font-weight:700;color:white;margin:4px 0;" id="sum-beat">+2.00</div>
+            <div style="font-size:10px;color:rgba(43,183,179,0.5);">Added to wallet</div>
+          </div>
+          <div style="width:48px;height:48px;background:rgba(43,183,179,0.1);border-radius:50%;display:flex;align-items:center;justify-content:center;border:1px solid rgba(43,183,179,0.2);">
+            <i data-lucide="award" style="width:22px;height:22px;stroke:#2BB7B3;"></i>
+          </div>
+        </div>
+
+        <div class="detail-box">
+          <div class="detail-row"><span style="font-size:11px;color:#aaa;">Station</span><span style="font-size:13px;font-weight:600;color:#111;" id="sum-station">MSU-IIT</span></div>
+          <div class="detail-row"><span style="font-size:11px;color:#aaa;">Area</span><span style="font-size:13px;font-weight:600;color:#111;" id="sum-area">Tibanga</span></div>
+          <div class="detail-row"><span style="font-size:11px;color:#aaa;">Payment</span><span style="font-size:13px;font-weight:700;color:var(--orange);">BEAT Wallet</span></div>
+        </div>
+
+        <button class="btn-teal" onclick="finishSummary()">DONE</button>
+      </div>
+    </div>
+
+    <nav class="bottom-nav">
+      <div class="nav-item active" onclick="finishSummary()">
+        <i data-lucide="home" style="width:19px;height:19px;stroke:var(--teal);"></i>
+        <span class="nav-label" style="color:var(--teal);">Home</span>
+      </div>
+      <div class="nav-item" onclick="navigate('wallet')"><i data-lucide="wallet" style="width:19px;height:19px;stroke:#bbb;"></i><span class="nav-label">Wallet</span></div>
+      <div class="scan-fab" onclick="openScanner()"><i data-lucide="scan-line" style="width:24px;height:24px;stroke:white;stroke-width:2;"></i></div>
+      <div class="nav-item" onclick="navigate('activity')"><i data-lucide="activity" style="width:19px;height:19px;stroke:#bbb;"></i><span class="nav-label">Activity</span></div>
+      <div class="nav-item" onclick="navigate('profile')"><i data-lucide="user" style="width:19px;height:19px;stroke:#bbb;"></i><span class="nav-label">Profile</span></div>
+    </nav>
+  </div>
+
+  <!-- ══ WALLET ══ -->
+  <div id="state-wallet" class="screen">
+    <div class="s-body">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 16px 8px;">
+        <div><div class="section-label">BEAT Wallet</div><div style="font-size:17px;font-weight:700;color:#111;margin-top:2px;">Your Credits</div></div>
+        <div class="icon-circle" style="background:#f5f5f5;border:1px solid #eee;"><i data-lucide="help-circle" style="width:15px;height:15px;stroke:#bbb;"></i></div>
+      </div>
+
+      <div class="w-hero">
+        <div style="font-size:9px;font-weight:700;letter-spacing:0.12em;color:var(--teal);text-transform:uppercase;position:relative;z-index:1;margin-bottom:4px;">Total BEAT Credits</div>
+        <div class="w-bal" id="wallet-beat">150.00</div>
+        <div style="font-size:11px;color:rgba(255,255,255,0.4);position:relative;z-index:1;margin-top:4px;">≈ ₱1,500.00 equivalent</div>
+        <div style="height:1px;background:rgba(43,183,179,0.2);margin:14px 0;position:relative;z-index:1;"></div>
+        <div style="display:flex;justify-content:space-between;position:relative;z-index:1;">
+          <div><div style="font-size:10px;color:rgba(255,255,255,0.4);">Lifetime</div><div style="font-family:'Space Mono',monospace;font-weight:700;color:white;font-size:14px;">327.50</div></div>
+          <div><div style="font-size:10px;color:rgba(255,255,255,0.4);">Redeemed</div><div style="font-family:'Space Mono',monospace;font-weight:700;color:white;font-size:14px;">177.50</div></div>
+          <div><div style="font-size:10px;color:rgba(255,255,255,0.4);">Expiring</div><div style="font-family:'Space Mono',monospace;font-weight:700;color:var(--orange);font-size:14px;">12.00</div></div>
+        </div>
+      </div>
+
+      <div class="w-actions">
+        <div class="w-btn">
+          <div class="w-ico" style="background:rgba(242,141,53,0.1);"><i data-lucide="gift" style="width:20px;height:20px;stroke:#F28D35;"></i></div>
+          <span style="font-size:11px;font-weight:700;color:#333;">Redeem</span>
+          <span style="font-size:10px;color:#bbb;">Use credits</span>
+        </div>
+        <div class="w-btn">
+          <div class="w-ico" style="background:rgba(43,183,179,0.1);"><i data-lucide="send" style="width:20px;height:20px;stroke:#2BB7B3;"></i></div>
+          <span style="font-size:11px;font-weight:700;color:#333;">Transfer</span>
+          <span style="font-size:10px;color:#bbb;">Send to friend</span>
+        </div>
+      </div>
+
+      <div class="redeem-banner" style="margin-top:10px;">
+        <div>
+          <div style="font-size:9px;font-weight:700;letter-spacing:0.1em;color:var(--orange);text-transform:uppercase;">Redeem Offer</div>
+          <div style="font-size:13px;font-weight:700;color:#111;margin-top:3px;">50 Credits = 1 Free Ride</div>
+          <div style="font-size:10px;color:#aaa;margin-top:1px;">All SIKLO stations</div>
+        </div>
+        <div style="width:40px;height:40px;background:rgba(242,141,53,0.1);border-radius:11px;display:flex;align-items:center;justify-content:center;">
+          <i data-lucide="ticket" style="width:20px;height:20px;stroke:#F28D35;"></i>
+        </div>
+      </div>
+
+      <div style="padding:12px 16px 6px;"><span class="section-label">Transactions</span></div>
+      <div>
+        <div class="tx"><div class="tx-ico" style="background:rgba(43,183,179,0.1);"><i data-lucide="bike" style="width:18px;height:18px;stroke:#2BB7B3;"></i></div><div style="flex:1;"><div style="font-size:13px;font-weight:600;color:#111;">Ride · Tambo → MSU-IIT</div><div style="font-size:10px;color:#aaa;">Today · Conventional</div></div><div style="text-align:right;"><div class="tx-cr">+2.00</div><div style="font-size:10px;color:#bbb;">₱15</div></div></div>
+        <div class="tx"><div class="tx-ico" style="background:rgba(43,183,179,0.1);"><i data-lucide="zap" style="width:18px;height:18px;stroke:#2BB7B3;"></i></div><div style="flex:1;"><div style="font-size:13px;font-weight:600;color:#111;">Ride · Palao → Tambo</div><div style="font-size:10px;color:#aaa;">Yesterday · E-Bike</div></div><div style="text-align:right;"><div class="tx-cr">+4.50</div><div style="font-size:10px;color:#bbb;">₱30</div></div></div>
+        <div class="tx"><div class="tx-ico" style="background:rgba(242,141,53,0.1);"><i data-lucide="gift" style="width:18px;height:18px;stroke:#F28D35;"></i></div><div style="flex:1;"><div style="font-size:13px;font-weight:600;color:#111;">Redeemed — Free Ride</div><div style="font-size:10px;color:#aaa;">Apr 14 · MSU-IIT</div></div><div style="text-align:right;"><div class="tx-db">-50.00</div><div style="font-size:10px;color:#bbb;">1 ride</div></div></div>
+        <div class="tx"><div class="tx-ico" style="background:rgba(43,183,179,0.1);"><i data-lucide="star" style="width:18px;height:18px;stroke:#2BB7B3;"></i></div><div style="flex:1;"><div style="font-size:13px;font-weight:600;color:#111;">Referral Bonus</div><div style="font-size:10px;color:#aaa;">Apr 10 · Joined SIKLO</div></div><div style="text-align:right;"><div class="tx-cr">+10.00</div><div style="font-size:10px;color:#bbb;">Bonus</div></div></div>
+      </div>
+    </div>
+    <nav class="bottom-nav">
+      <div class="nav-item" onclick="navigate('dashboard')"><i data-lucide="home" style="width:19px;height:19px;stroke:#bbb;"></i><span class="nav-label">Home</span></div>
+      <div class="nav-item active"><i data-lucide="wallet" style="width:19px;height:19px;stroke:var(--teal);"></i><span class="nav-label" style="color:var(--teal);">Wallet</span></div>
+      <div class="scan-fab" onclick="openScanner()"><i data-lucide="scan-line" style="width:24px;height:24px;stroke:white;stroke-width:2;"></i></div>
+      <div class="nav-item" onclick="navigate('activity')"><i data-lucide="activity" style="width:19px;height:19px;stroke:#bbb;"></i><span class="nav-label">Activity</span></div>
+      <div class="nav-item" onclick="navigate('profile')"><i data-lucide="user" style="width:19px;height:19px;stroke:#bbb;"></i><span class="nav-label">Profile</span></div>
+    </nav>
+  </div>
+
+  <!-- ══ ACTIVITY ══ -->
+  <div id="state-activity" class="screen">
+    <div class="s-body">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 16px 8px;">
+        <div><div class="section-label">Your Rides</div><div style="font-size:17px;font-weight:700;color:#111;margin-top:2px;">Activity</div></div>
+        <div style="background:rgba(43,183,179,0.1);border:1px solid rgba(43,183,179,0.2);border-radius:9px;padding:5px 11px;cursor:pointer;"><span style="font-size:10px;font-weight:700;color:var(--teal);">This Month</span></div>
+      </div>
+
+      <div class="stat3">
+        <div class="mini-stat"><div style="font-family:'Space Mono',monospace;font-size:19px;font-weight:700;color:var(--teal);">14</div><div style="font-size:10px;color:#aaa;margin-top:2px;">Rides</div></div>
+        <div class="mini-stat"><div style="font-family:'Space Mono',monospace;font-size:19px;font-weight:700;color:var(--orange);">38km</div><div style="font-size:10px;color:#aaa;margin-top:2px;">Distance</div></div>
+        <div class="mini-stat"><div style="font-family:'Space Mono',monospace;font-size:19px;font-weight:700;color:#111;">7h</div><div style="font-size:10px;color:#aaa;margin-top:2px;">Duration</div></div>
+      </div>
+
+      <div class="chart-box">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <span class="section-label">This Week</span>
+          <span style="font-family:'Space Mono',monospace;font-size:11px;font-weight:700;color:var(--teal);">5 rides</span>
+        </div>
+        <div class="bars">
+          <div class="bar-c"><div class="bar" style="height:24px;"></div><span class="bar-d">M</span></div>
+          <div class="bar-c"><div class="bar" style="height:38px;"></div><span class="bar-d">T</span></div>
+          <div class="bar-c"><div class="bar hi" style="height:50px;"></div><span class="bar-d">W</span></div>
+          <div class="bar-c"><div class="bar" style="height:30px;"></div><span class="bar-d">T</span></div>
+          <div class="bar-c"><div class="bar hi" style="height:56px;"></div><span class="bar-d">F</span></div>
+          <div class="bar-c"><div class="bar" style="height:18px;"></div><span class="bar-d">S</span></div>
+          <div class="bar-c"><div class="bar" style="height:8px;"></div><span class="bar-d">S</span></div>
+        </div>
+      </div>
+
+      <!-- eco -->
+      <div style="margin:0 16px 10px;padding:12px 14px;border-radius:16px;display:flex;align-items:center;gap:11px;background:linear-gradient(135deg,#f0fafa,#e8f8f8);border:1.5px solid rgba(43,183,179,0.18);">
+        <div style="width:40px;height:40px;background:rgba(43,183,179,0.14);border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i data-lucide="leaf" style="width:20px;height:20px;stroke:#2BB7B3;"></i></div>
+        <div><div style="font-size:9px;font-weight:700;letter-spacing:0.1em;color:var(--teal);text-transform:uppercase;">Eco Impact</div><div style="font-size:13px;font-weight:700;color:#111;margin-top:1px;">Saved 4.7kg of CO2</div><div style="font-size:10px;color:#aaa;">vs. riding a jeepney this month</div></div>
+      </div>
+
+      <div style="padding:4px 16px 6px;"><span class="section-label">Ride History</span></div>
+      <div class="rh"><div class="rh-thumb" style="background:rgba(43,183,179,0.1);"><i data-lucide="bike" style="width:20px;height:20px;stroke:#2BB7B3;"></i></div><div style="flex:1;"><div style="font-size:13px;font-weight:600;color:#111;">Tambo → MSU-IIT</div><div style="font-size:10px;color:#aaa;margin-top:1px;">Today · 28 mins · Conventional</div></div><div style="text-align:right;"><div style="font-size:13px;font-weight:700;color:#111;">₱15</div><div style="font-size:10px;color:var(--teal);">+2.0 BEAT</div></div></div>
+      <div class="rh"><div class="rh-thumb" style="background:rgba(242,141,53,0.1);"><i data-lucide="zap" style="width:20px;height:20px;stroke:#F28D35;"></i></div><div style="flex:1;"><div style="font-size:13px;font-weight:600;color:#111;">Palao → Tambo</div><div style="font-size:10px;color:#aaa;margin-top:1px;">Yesterday · 31 mins · E-Bike</div></div><div style="text-align:right;"><div style="font-size:13px;font-weight:700;color:#111;">₱30</div><div style="font-size:10px;color:var(--teal);">+4.5 BEAT</div></div></div>
+      <div class="rh"><div class="rh-thumb" style="background:rgba(43,183,179,0.1);"><i data-lucide="bike" style="width:20px;height:20px;stroke:#2BB7B3;"></i></div><div style="flex:1;"><div style="font-size:13px;font-weight:600;color:#111;">MSU-IIT → City Hall</div><div style="font-size:10px;color:#aaa;margin-top:1px;">Apr 15 · 24 mins · Conv.</div></div><div style="text-align:right;"><div style="font-size:13px;font-weight:700;color:#111;">₱15</div><div style="font-size:10px;color:var(--teal);">+2.0 BEAT</div></div></div>
+      <div class="rh"><div class="rh-thumb" style="background:rgba(242,141,53,0.1);"><i data-lucide="zap" style="width:20px;height:20px;stroke:#F28D35;"></i></div><div style="flex:1;"><div style="font-size:13px;font-weight:600;color:#111;">City Hall → Tambo</div><div style="font-size:10px;color:#aaa;margin-top:1px;">Apr 14 · 35 mins · E-Bike</div></div><div style="text-align:right;"><div style="font-size:13px;font-weight:700;color:#111;">₱30</div><div style="font-size:10px;color:var(--teal);">+4.5 BEAT</div></div></div>
+    </div>
+    <nav class="bottom-nav">
+      <div class="nav-item" onclick="navigate('dashboard')"><i data-lucide="home" style="width:19px;height:19px;stroke:#bbb;"></i><span class="nav-label">Home</span></div>
+      <div class="nav-item" onclick="navigate('wallet')"><i data-lucide="wallet" style="width:19px;height:19px;stroke:#bbb;"></i><span class="nav-label">Wallet</span></div>
+      <div class="scan-fab" onclick="openScanner()"><i data-lucide="scan-line" style="width:24px;height:24px;stroke:white;stroke-width:2;"></i></div>
+      <div class="nav-item active"><i data-lucide="activity" style="width:19px;height:19px;stroke:var(--teal);"></i><span class="nav-label" style="color:var(--teal);">Activity</span></div>
+      <div class="nav-item" onclick="navigate('profile')"><i data-lucide="user" style="width:19px;height:19px;stroke:#bbb;"></i><span class="nav-label">Profile</span></div>
+    </nav>
+  </div>
+
+  <!-- ══ PROFILE ══ -->
+  <div id="state-profile" class="screen">
+    <div class="s-body">
+      <div class="prof-hero">
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;">
+          <div class="avatar">JD</div>
+          <div style="flex:1;">
+            <div style="font-size:18px;font-weight:700;color:#111;">Juan dela Cruz</div>
+            <div style="font-size:11px;color:#aaa;margin-top:1px;">+63 917 123 4567</div>
+            <div style="display:flex;align-items:center;gap:5px;margin-top:5px;">
+              <div style="width:5px;height:5px;border-radius:50%;background:var(--teal);"></div>
+              <span style="font-size:10px;font-weight:700;color:var(--teal);">Verified Rider</span>
+            </div>
+          </div>
+          <div style="background:#f5f5f5;border:1px solid #eee;border-radius:9px;padding:7px;cursor:pointer;"><i data-lucide="edit-2" style="width:14px;height:14px;stroke:#bbb;"></i></div>
+        </div>
+        <div style="display:flex;background:white;border:1px solid #f0f0f0;border-radius:14px;padding:12px 6px;">
+          <div class="prof-stat"><div class="psv">14</div><div style="font-size:10px;color:#aaa;margin-top:1px;">Rides</div></div>
+          <div style="width:1px;background:#f0f0f0;"></div>
+          <div class="prof-stat"><div class="psv">38</div><div style="font-size:10px;color:#aaa;margin-top:1px;">km</div></div>
+          <div style="width:1px;background:#f0f0f0;"></div>
+          <div class="prof-stat"><div class="psv" style="color:var(--teal);">150</div><div style="font-size:10px;color:#aaa;margin-top:1px;">BEAT</div></div>
+        </div>
+      </div>
+
+      <div style="padding:12px 16px 6px;"><span class="section-label">Achievements</span></div>
+      <div class="badge-strip" style="margin-bottom:12px;">
+        <div class="badge-item"><div class="bc earned"><i data-lucide="bike" style="width:20px;height:20px;stroke:#2BB7B3;"></i></div><span style="font-size:9px;color:#888;">First Ride</span></div>
+        <div class="badge-item"><div class="bc earned"><i data-lucide="zap" style="width:20px;height:20px;stroke:#2BB7B3;"></i></div><span style="font-size:9px;color:#888;">E-Biker</span></div>
+        <div class="badge-item"><div class="bc earned"><i data-lucide="leaf" style="width:20px;height:20px;stroke:#2BB7B3;"></i></div><span style="font-size:9px;color:#888;">Eco Hero</span></div>
+        <div class="badge-item"><div class="bc locked"><i data-lucide="map" style="width:20px;height:20px;stroke:#bbb;"></i></div><span style="font-size:9px;color:#bbb;">Explorer</span></div>
+        <div class="badge-item"><div class="bc locked"><i data-lucide="star" style="width:20px;height:20px;stroke:#bbb;"></i></div><span style="font-size:9px;color:#bbb;">50 Rides</span></div>
+      </div>
+
+      <div style="background:#fafafa;border-top:1px solid #f0f0f0;border-bottom:1px solid #f0f0f0;padding:4px 16px;">
+        <div style="padding:10px 0 4px;"><span class="section-label">Account</span></div>
+        <div class="menu-row"><div class="m-ico" style="background:rgba(43,183,179,0.1);"><i data-lucide="user" style="width:16px;height:16px;stroke:#2BB7B3;"></i></div><div style="flex:1;"><div style="font-size:13px;font-weight:600;color:#111;">Personal Information</div><div style="font-size:10px;color:#aaa;">Name, phone, address</div></div><i data-lucide="chevron-right" style="width:14px;height:14px;stroke:#ddd;"></i></div>
+        <div class="menu-row"><div class="m-ico" style="background:rgba(43,183,179,0.1);"><i data-lucide="shield-check" style="width:16px;height:16px;stroke:#2BB7B3;"></i></div><div style="flex:1;"><div style="font-size:13px;font-weight:600;color:#111;">Verification</div><div style="font-size:10px;color:#aaa;">ID and proof of address</div></div><i data-lucide="chevron-right" style="width:14px;height:14px;stroke:#ddd;"></i></div>
+      </div>
+
+      <div style="padding:4px 16px;">
+        <div style="padding:10px 0 4px;"><span class="section-label">Preferences</span></div>
+        <div class="menu-row"><div class="m-ico" style="background:rgba(242,141,53,0.1);"><i data-lucide="bell" style="width:16px;height:16px;stroke:#F28D35;"></i></div><div style="flex:1;"><div style="font-size:13px;font-weight:600;color:#111;">Notifications</div><div style="font-size:10px;color:#aaa;">Rides, credits, promos</div></div><i data-lucide="chevron-right" style="width:14px;height:14px;stroke:#ddd;"></i></div>
+        <div class="menu-row"><div class="m-ico" style="background:rgba(242,141,53,0.1);"><i data-lucide="map-pin" style="width:16px;height:16px;stroke:#F28D35;"></i></div><div style="flex:1;"><div style="font-size:13px;font-weight:600;color:#111;">Home Station</div><div style="font-size:10px;color:#aaa;">MSU-IIT · Tibanga</div></div><i data-lucide="chevron-right" style="width:14px;height:14px;stroke:#ddd;"></i></div>
+        <div class="menu-row"><div class="m-ico" style="background:rgba(242,141,53,0.1);"><i data-lucide="share-2" style="width:16px;height:16px;stroke:#F28D35;"></i></div><div style="flex:1;"><div style="font-size:13px;font-weight:600;color:#111;">Refer a Friend</div><div style="font-size:10px;color:#aaa;">Earn +10 BEAT per referral</div></div><i data-lucide="chevron-right" style="width:14px;height:14px;stroke:#ddd;"></i></div>
+      </div>
+
+      <div style="background:#fafafa;border-top:1px solid #f0f0f0;padding:4px 16px;">
+        <div style="padding:10px 0 4px;"><span class="section-label">Support</span></div>
+        <div class="menu-row"><div class="m-ico" style="background:#f0f0f0;"><i data-lucide="help-circle" style="width:16px;height:16px;stroke:#999;"></i></div><div style="flex:1;"><div style="font-size:13px;font-weight:600;color:#111;">Help Center</div><div style="font-size:10px;color:#aaa;">FAQs and guides</div></div><i data-lucide="chevron-right" style="width:14px;height:14px;stroke:#ddd;"></i></div>
+        <div class="menu-row" style="border-bottom:none;"><div class="m-ico" style="background:rgba(239,68,68,0.08);"><i data-lucide="log-out" style="width:16px;height:16px;stroke:#ef4444;"></i></div><div style="flex:1;"><div style="font-size:13px;font-weight:600;color:#ef4444;">Log Out</div><div style="font-size:10px;color:#aaa;">+63 917 123 4567</div></div></div>
+      </div>
+    </div>
+    <nav class="bottom-nav">
+      <div class="nav-item" onclick="navigate('dashboard')"><i data-lucide="home" style="width:19px;height:19px;stroke:#bbb;"></i><span class="nav-label">Home</span></div>
+      <div class="nav-item" onclick="navigate('wallet')"><i data-lucide="wallet" style="width:19px;height:19px;stroke:#bbb;"></i><span class="nav-label">Wallet</span></div>
+      <div class="scan-fab" onclick="openScanner()"><i data-lucide="scan-line" style="width:24px;height:24px;stroke:white;stroke-width:2;"></i></div>
+      <div class="nav-item" onclick="navigate('activity')"><i data-lucide="activity" style="width:19px;height:19px;stroke:#bbb;"></i><span class="nav-label">Activity</span></div>
+      <div class="nav-item active"><i data-lucide="user" style="width:19px;height:19px;stroke:var(--teal);"></i><span class="nav-label" style="color:var(--teal);">Profile</span></div>
+    </nav>
+  </div>
+
+</div><!-- /phone -->
+
+<script>
+  lucide.createIcons();
+
+  // ── State ──
+  let selStation  = null;
+  let selVehicle  = null;
+  let rideTimer   = null;
+  let beatTimer   = null;
+  let elapsed     = 0;
+  let beatAcc     = 0;
+  let totalBeat   = 150.00;
+
+  const RATES = { conventional: 15, ebike: 30 };
+  const ALL   = ['login','dashboard','scanner','ride','summary','wallet','activity','profile'];
+
+  function navigate(id) {
+    ALL.forEach(s => {
+      const el = document.getElementById('state-' + s);
+      if (el) el.classList.remove('active');
+    });
+    document.getElementById('state-' + id).classList.add('active');
+    if (id === 'wallet')   document.getElementById('wallet-beat').textContent = totalBeat.toFixed(2);
+    lucide.createIcons();
+  }
+
+  function toggleLogin() {
+    document.getElementById('enter-btn').disabled = !document.getElementById('tnc-check').checked;
+  }
+
+  // ── Scanner ──
+  function openScanner() {
+    navigate('scanner');
+    navigator.mediaDevices?.getUserMedia({ video: { facingMode:'environment' } })
+      .then(s => { document.getElementById('cam-feed').srcObject = s; })
+      .catch(() => {});
+  }
+  function stopCamera() {
+    const v = document.getElementById('cam-feed');
+    if (v.srcObject) { v.srcObject.getTracks().forEach(t => t.stop()); v.srcObject = null; }
+  }
+
+  // ── After scan → open station modal ──
+  function afterScan() {
+    stopCamera();
+    selStation = null; selVehicle = null;
+    ['spi-msu','spi-tambo','spi-cityhall'].forEach(id => document.getElementById(id).classList.remove('chosen'));
+    document.getElementById('btn-station-next').disabled = true;
+    ['vc-conv','vc-ebike'].forEach(id => document.getElementById(id).classList.remove('picked'));
+    document.getElementById('btn-start-ride').disabled = true;
+    document.getElementById('modal-station').style.display = 'flex';
+    lucide.createIcons();
+  }
+
+  // ── Station pick ──
+  function pickStation(name, area, bikes, color, elemId) {
+    selStation = { name, area, color };
+    ['spi-msu','spi-tambo','spi-cityhall'].forEach(id => document.getElementById(id).classList.remove('chosen'));
+    document.getElementById(elemId).classList.add('chosen');
+    document.getElementById('btn-station-next').disabled = false;
+  }
+
+  function closeStationModal() {
+    document.getElementById('modal-station').style.display = 'none';
+    navigate('dashboard');
+  }
+
+  function openVehicleModal() {
+    document.getElementById('modal-station').style.display = 'none';
+    document.getElementById('v-modal-sub').textContent = selStation.name + ' · ' + selStation.area;
+    document.getElementById('chip-name').textContent  = selStation.name;
+    document.getElementById('chip-area').textContent  = selStation.area;
+    document.getElementById('modal-vehicle').style.display = 'flex';
+    lucide.createIcons();
+  }
+
+  function backToStation() {
+    document.getElementById('modal-vehicle').style.display = 'none';
+    document.getElementById('modal-station').style.display = 'flex';
+    lucide.createIcons();
+  }
+
+  // ── Quick start from dashboard station tap ──
+  function quickStart(name, area, bikes, color) {
+    selStation = { name, area, color };
+    selVehicle = null;
+    ['vc-conv','vc-ebike'].forEach(id => document.getElementById(id).classList.remove('picked'));
+    document.getElementById('btn-start-ride').disabled = true;
+    document.getElementById('v-modal-sub').textContent = name + ' · ' + area;
+    document.getElementById('chip-name').textContent  = name;
+    document.getElementById('chip-area').textContent  = area;
+    document.getElementById('modal-vehicle').style.display = 'flex';
+    lucide.createIcons();
+  }
+
+  // ── Vehicle pick ──
+  function pickVehicle(type) {
+    selVehicle = type;
+    document.getElementById('vc-conv').classList.toggle('picked', type === 'conventional');
+    document.getElementById('vc-ebike').classList.toggle('picked', type === 'ebike');
+    document.getElementById('btn-start-ride').disabled = false;
+  }
+
+  // ── Start ride ──
+  function startRide() {
+    document.getElementById('modal-vehicle').style.display = 'none';
+    navigate('ride');
+
+    const badge = document.getElementById('ride-badge');
+    if (selVehicle === 'ebike') {
+      badge.textContent = 'E-Bike';
+      badge.style.cssText = 'align-self:flex-start;font-size:10px;font-weight:700;padding:3px 12px;border-radius:99px;letter-spacing:0.08em;text-transform:uppercase;border:1px solid rgba(43,183,179,0.25);background:rgba(43,183,179,0.1);color:#2BB7B3;';
+    } else {
+      badge.textContent = 'Conventional';
+      badge.style.cssText = 'align-self:flex-start;font-size:10px;font-weight:700;padding:3px 12px;border-radius:99px;letter-spacing:0.08em;text-transform:uppercase;border:1px solid rgba(242,141,53,0.25);background:rgba(242,141,53,0.1);color:#F28D35;';
+    }
+
+    document.getElementById('ride-from').textContent  = selStation.name + ' · ' + selStation.area;
+    document.getElementById('ride-vtype').textContent = selVehicle === 'ebike' ? 'E-Bike' : 'Conventional';
+    document.getElementById('ride-timer').textContent = '00:00';
+    document.getElementById('ride-cost').textContent  = '₱0.00';
+    document.getElementById('beat-val').textContent   = '+0.00';
+
+    elapsed = 0; beatAcc = 0;
+
+    rideTimer = setInterval(() => {
+      elapsed++;
+      const m = String(Math.floor(elapsed/60)).padStart(2,'0');
+      const s = String(elapsed%60).padStart(2,'0');
+      document.getElementById('ride-timer').textContent = m+':'+s;
+      document.getElementById('ride-cost').textContent  = '₱' + ((elapsed/1800)*RATES[selVehicle]).toFixed(2);
+    }, 1000);
+
+    beatTimer = setInterval(() => {
+      beatAcc += 0.10;
+      document.getElementById('beat-val').textContent = '+' + beatAcc.toFixed(2);
+    }, 3000);
+  }
+
+  function endRide() {
+    clearInterval(rideTimer);
+    clearInterval(beatTimer);
+
+    const rate      = RATES[selVehicle];
+    const beatEarned = rate / 10;
+    totalBeat += beatEarned;
+
+    const m = String(Math.floor(elapsed/60)).padStart(2,'0');
+    const s = String(elapsed%60).padStart(2,'0');
+
+    document.getElementById('sum-cost').textContent    = '₱' + rate.toFixed(2);
+    document.getElementById('sum-time').textContent    = m + ':' + s;
+    document.getElementById('sum-rate').textContent    = '₱' + rate;
+    document.getElementById('sum-beat').textContent    = '+' + beatEarned.toFixed(2);
+    document.getElementById('sum-desc').textContent    = '15 mins · ' + (selVehicle==='ebike'?'E-Bike':'Conventional Bike');
+    document.getElementById('sum-station').textContent = selStation.name;
+    document.getElementById('sum-area').textContent    = selStation.area;
+
+    navigate('summary');
+  }
+
+  function finishSummary() {
+    document.getElementById('dash-beat').textContent   = totalBeat.toFixed(2);
+    document.getElementById('wallet-beat').textContent = totalBeat.toFixed(2);
+    selStation = null; selVehicle = null;
+    navigate('dashboard');
+  }
+
+  navigate('login');
+</script>
+</body>
+</html>
